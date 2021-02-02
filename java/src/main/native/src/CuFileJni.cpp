@@ -149,9 +149,11 @@ public:
    *
    * Should not be called directly; use the following factory methods instead.
    *
+   * @param path The path of the underlying file.
    * @param file_descriptor A valid file descriptor.
    */
-  explicit cufile_file(int file_descriptor) : file_descriptor_{file_descriptor} {
+  explicit cufile_file(char const *path, int file_descriptor)
+      : path_{path}, file_descriptor_{file_descriptor} {
     CUfileDescr_t cufile_descriptor{CU_FILE_HANDLE_TYPE_OPAQUE_FD, file_descriptor_};
     auto const status = cuFileHandleRegister(&cufile_handle_, &cufile_descriptor);
     if (status.err != CU_FILE_SUCCESS) {
@@ -171,7 +173,7 @@ public:
     if (file_descriptor < 0) {
       CUDF_FAIL("Failed to open file to read: " + cuFileGetErrorString(errno));
     }
-    return std::make_unique<cufile_file>(file_descriptor);
+    return std::make_unique<cufile_file>(path, file_descriptor);
   }
 
   /**
@@ -185,7 +187,7 @@ public:
     if (file_descriptor < 0) {
       CUDF_FAIL("Failed to open file to write: " + cuFileGetErrorString(errno));
     }
-    return std::make_unique<cufile_file>(file_descriptor);
+    return std::make_unique<cufile_file>(path, file_descriptor);
   }
 
   // Disable copy (and move) semantics.
@@ -210,9 +212,9 @@ public:
 
     if (status < 0) {
       if (IS_CUFILE_ERR(status)) {
-        CUDF_FAIL("Failed to read file into buffer: " + cuFileGetErrorString(status));
+        CUDF_FAIL("Failed to read file " + path_ + " into buffer: " + cuFileGetErrorString(status));
       } else {
-        CUDF_FAIL("Failed to read file into buffer: " + cuFileGetErrorString(errno));
+        CUDF_FAIL("Failed to read file " + path_ + "  into buffer: " + cuFileGetErrorString(errno));
       }
     }
 
@@ -231,9 +233,9 @@ public:
 
     if (status < 0) {
       if (IS_CUFILE_ERR(status)) {
-        CUDF_FAIL("Failed to write buffer to file: " + cuFileGetErrorString(status));
+        CUDF_FAIL("Failed to write buffer to file " + path_ + ": " + cuFileGetErrorString(status));
       } else {
-        CUDF_FAIL("Failed to write buffer to file: " + cuFileGetErrorString(errno));
+        CUDF_FAIL("Failed to write buffer to file " + path_ + ": " + cuFileGetErrorString(errno));
       }
     }
 
@@ -249,7 +251,7 @@ public:
   std::size_t append(cufile_buffer const &buffer) {
     auto const status = lseek(file_descriptor_, 0, SEEK_END);
     if (status < 0) {
-      CUDF_FAIL("Failed to seek end of file: " + cuFileGetErrorString(errno));
+      CUDF_FAIL("Failed to seek end of file " + path_ + ": " + cuFileGetErrorString(errno));
     }
 
     auto const file_offset = static_cast<std::size_t>(status);
@@ -258,6 +260,8 @@ public:
   }
 
 private:
+  /// The underlying file path.
+  std::string path_;
   /// The underlying file descriptor.
   int file_descriptor_;
   /// The registered cuFile handle.
