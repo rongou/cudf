@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <cstring>
+#include <sys/stat.h>
 
 #include <cufile.h>
 #include <fcntl.h>
@@ -183,7 +184,17 @@ public:
    * @return std::unique_ptr<cufile_file> for writing.
    */
   static auto make_writer(char const *path) {
-    auto const file_descriptor = open(path, O_CREAT | O_WRONLY | O_DIRECT, S_IRUSR | S_IWUSR);
+    int file_descriptor;
+    struct stat buffer;
+    if (stat(path, &buffer) == 0) {
+      // File exists.
+      std::cerr << "File " << path << " does not exist\n";
+      file_descriptor = open(path, O_WRONLY | O_DIRECT);
+    } else {
+      // File does not exist.
+      std::cerr << "File " << path << " exists\n";
+      file_descriptor = open(path, O_CREAT | O_WRONLY | O_DIRECT, 0644);
+    }
     if (file_descriptor < 0) {
       CUDF_FAIL("Failed to open file to write: " + cuFileGetErrorString(errno));
     }
