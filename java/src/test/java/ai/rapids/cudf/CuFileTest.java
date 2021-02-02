@@ -10,8 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class CuFileTest extends CudfTestBase {
-  @TempDir File tempDir;
-
   @AfterEach
   void tearDown() {
     if (PinnedMemoryPool.isInitialized()) {
@@ -20,7 +18,7 @@ public class CuFileTest extends CudfTestBase {
   }
 
   @Test
-  public void testCopyToFile() {
+  public void testCopyToFile(@TempDir File tempDir) {
     assumeTrue(CuFile.libraryLoaded());
     File tempFile = new File(tempDir, "tempFile");
     try (HostMemoryBuffer orig = HostMemoryBuffer.allocate(16);
@@ -37,7 +35,7 @@ public class CuFileTest extends CudfTestBase {
   }
 
   @Test
-  public void testAppendToFile() {
+  public void testAppendToFile(@TempDir File tempDir) throws Exception {
     assumeTrue(CuFile.libraryLoaded());
     File tempFile = new File(tempDir, "tempFile");
     try (HostMemoryBuffer orig = HostMemoryBuffer.allocate(16);

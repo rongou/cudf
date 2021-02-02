@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <cstring>
+#include <iostream>
 #include <sys/stat.h>
 
 #include <cufile.h>
@@ -188,12 +189,12 @@ public:
     struct stat buffer;
     if (stat(path, &buffer) == 0) {
       // File exists.
-      std::cerr << "File " << path << " does not exist\n";
-      file_descriptor = open(path, O_WRONLY | O_DIRECT);
+      std::cerr << "File " << path << " exists\n";
+      file_descriptor = open(path, O_RDWR | O_DIRECT);
     } else {
       // File does not exist.
-      std::cerr << "File " << path << " exists\n";
-      file_descriptor = open(path, O_CREAT | O_WRONLY | O_DIRECT, 0644);
+      std::cerr << "File " << path << " does not exist\n";
+      file_descriptor = open(path, O_CREAT | O_RDWR | O_DIRECT, 0644);
     }
     if (file_descriptor < 0) {
       CUDF_FAIL("Failed to open file to write: " + cuFileGetErrorString(errno));
@@ -266,6 +267,7 @@ public:
     }
 
     auto const file_offset = static_cast<std::size_t>(status);
+    std::cerr << "Appending to " << path_ << " with offset " << file_offset << "\n";
     write(buffer, file_offset);
     return file_offset;
   }
