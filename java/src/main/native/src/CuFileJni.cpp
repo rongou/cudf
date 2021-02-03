@@ -212,6 +212,12 @@ public:
     close(file_descriptor_);
   }
 
+  std::size_t get_file_size() {
+    struct stat buffer;
+    auto const rc = fstat(file_descriptor_, &buffer);
+    return rc == 0 ? buffer.st_size : -1;
+  }
+
   /**
    * @brief Read the file into a device buffer.
    *
@@ -244,6 +250,7 @@ public:
         cuFileWrite(cufile_handle_, buffer.device_pointer(), buffer.size(), file_offset, 0);
 
     if (status < 0) {
+      std::cerr << "File " + path_ + " size is " << get_file_size() << "\n";
       if (IS_CUFILE_ERR(status)) {
         CUDF_FAIL("Failed to write buffer to file " + path_ + ": " + cuFileGetErrorString(status));
       } else {
