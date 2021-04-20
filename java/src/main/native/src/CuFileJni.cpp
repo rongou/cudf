@@ -208,6 +208,8 @@ public:
    * @param file_offset Starting offset from which to read the file.
    */
   void read(cufile_buffer const &buffer, std::size_t file_offset) const {
+    check_buffer(buffer);
+
     auto const status =
         cuFileRead(cufile_handle_, buffer.device_pointer(), buffer.size(), file_offset, 0);
 
@@ -219,6 +221,7 @@ public:
       }
     }
 
+    check_buffer(buffer);
     CUDF_EXPECTS(static_cast<std::size_t>(status) == buffer.size(),
                  "Size of bytes read is different from buffer size");
   }
@@ -230,6 +233,8 @@ public:
    * @param file_offset Starting offset from which to write the file.
    */
   void write(cufile_buffer const &buffer, std::size_t file_offset) {
+    check_buffer(buffer);
+
     auto const status =
         cuFileWrite(cufile_handle_, buffer.device_pointer(), buffer.size(), file_offset, 0);
 
@@ -241,6 +246,7 @@ public:
       }
     }
 
+    check_buffer(buffer);
     CUDF_EXPECTS(static_cast<std::size_t>(status) == buffer.size(),
                  "Size of bytes written is different from buffer size");
   }
@@ -268,6 +274,21 @@ private:
   int file_descriptor_;
   /// The registered cuFile handle.
   CUfileHandle_t cufile_handle_{};
+
+  void check_buffer(cufile_buffer const &buffer) {
+    CUdevice device;
+    cuCtxGetDevice(&device);
+    std::cout << "Device id for the current CUDA context: " << device << "\n";
+
+    CUresult cu_status;
+    int curdev = -1;
+    cu_status = cuPointerGetAttribute(&curdev, CU_POINTER_ATTRIBUTE_DEVICE_ORDINAL,
+                                      reinterpret_cast<CUdeviceptr>(buffer.device_pointer()));
+    if (cu_status != CUDA_SUCCESS) {
+      CUDF_FAIL(
+          "Failed to get current device information for the device buffer specified " + cu_status);
+    }
+  }
 };
 
 } // anonymous namespace
