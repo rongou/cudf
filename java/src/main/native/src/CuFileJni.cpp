@@ -235,7 +235,7 @@ public:
     cu_status = cuPointerGetAttribute(&curdev, CU_POINTER_ATTRIBUTE_DEVICE_ORDINAL,
                                       reinterpret_cast<CUdeviceptr>(buffer.device_pointer()));
     if (cu_status != CUDA_SUCCESS) {
-      CUdevice device;
+      CUdevice device = -1;
       cuCtxGetDevice(&device);
       CUDF_FAIL("Failed to get current device information for the device buffer specified, device "
                 + device);
@@ -255,7 +255,7 @@ public:
     cu_status = cuPointerGetAttribute(&curdev, CU_POINTER_ATTRIBUTE_DEVICE_ORDINAL,
                                       reinterpret_cast<CUdeviceptr>(buffer.device_pointer()));
     if (cu_status != CUDA_SUCCESS) {
-      CUdevice device;
+      CUdevice device = -1;
       cuCtxGetDevice(&device);
       CUDF_FAIL("Failed to get current device information for the device buffer specified, device "
                 + device);
