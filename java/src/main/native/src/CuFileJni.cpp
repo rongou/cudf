@@ -275,7 +275,7 @@ private:
   /// The registered cuFile handle.
   CUfileHandle_t cufile_handle_{};
 
-  void check_buffer(cufile_buffer const &buffer) {
+  static void check_buffer(cufile_buffer const &buffer) {
     CUdevice device;
     cuCtxGetDevice(&device);
     std::cout << "Device id for the current CUDA context: " << device << "\n";
