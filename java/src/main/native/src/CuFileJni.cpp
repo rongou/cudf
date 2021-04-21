@@ -375,7 +375,15 @@ JNIEXPORT jlong JNICALL Java_ai_rapids_cudf_CuFile_appendToFile(JNIEnv *env, jcl
     cufile_buffer buffer{reinterpret_cast<void *>(device_pointer), static_cast<std::size_t>(size)};
     auto writer = cufile_file::make_writer(env->GetStringUTFChars(path, nullptr));
 
-    return writer->append(buffer);
+    auto const result = writer->append(buffer);
+
+    status = cuCtxGetCurrent(&ctx);
+    if (status != CUDA_SUCCESS) {
+      CUDF_FAIL("Failed to get current cuda context");
+    }
+    CUDF_EXPECTS(context == ctx, "Context switched");
+
+    return result;
   }
   CATCH_STD(env, -1);
 }
