@@ -230,20 +230,14 @@ public:
    * @param file_offset Starting offset from which to write the file.
    */
   void write(cufile_buffer const &buffer, std::size_t file_offset) {
-    CUresult cu_status;
-    int curdev = -1;
-    cu_status = cuPointerGetAttribute(&curdev, CU_POINTER_ATTRIBUTE_DEVICE_ORDINAL,
-                                      reinterpret_cast<CUdeviceptr>(buffer.device_pointer()));
-    if (cu_status != CUDA_SUCCESS) {
-      CUdevice device = -1;
-      cuCtxGetDevice(&device);
-      CUDF_FAIL("Failed to get current device information for the device buffer specified, device "
-                + device);
+    CUcontext ctx0;
+    CUresult result = cuCtxGetCurrent(&ctx0);
+    if (result != CUDA_SUCCESS) {
+      CUDF_FAIL("Failed to get current cuda context");
     }
 
     auto const status =
         cuFileWrite(cufile_handle_, buffer.device_pointer(), buffer.size(), file_offset, 0);
-
     if (status < 0) {
       if (IS_CUFILE_ERR(status)) {
         CUDF_FAIL("Failed to write buffer to file: " + cuFileGetErrorString(status));
@@ -252,14 +246,13 @@ public:
       }
     }
 
-    cu_status = cuPointerGetAttribute(&curdev, CU_POINTER_ATTRIBUTE_DEVICE_ORDINAL,
-                                      reinterpret_cast<CUdeviceptr>(buffer.device_pointer()));
-    if (cu_status != CUDA_SUCCESS) {
-      CUdevice device = -1;
-      cuCtxGetDevice(&device);
-      CUDF_FAIL("Failed to get current device information for the device buffer specified, device "
-                + device);
+    CUcontext ctx1;
+    result = cuCtxGetCurrent(&ctx1);
+    if (result != CUDA_SUCCESS) {
+      CUDF_FAIL("Failed to get current cuda context");
     }
+    CUDF_EXPECTS(ctx0 == ctx1, "Context switched");
+
     CUDF_EXPECTS(static_cast<std::size_t>(status) == buffer.size(),
                  "Size of bytes written is different from buffer size");
   }
@@ -346,9 +339,6 @@ JNIEXPORT void JNICALL Java_ai_rapids_cudf_CuFile_writeToFile(JNIEnv *env, jclas
   CATCH_STD(env, );
 }
 
-//CUcontext context{nullptr};
-CUdevice device{cudaInvalidDeviceId};
-
 /**
  * @brief Append a device buffer into a given file path.
  *
@@ -361,47 +351,9 @@ JNIEXPORT jlong JNICALL Java_ai_rapids_cudf_CuFile_appendToFile(JNIEnv *env, jcl
                                                                 jlong device_pointer, jlong size) {
   try {
     cudf::jni::auto_set_device(env);
-
-//    CUcontext ctx;
-//    CUresult status = cuCtxGetCurrent(&ctx);
-//    if (status != CUDA_SUCCESS) {
-//      CUDF_FAIL("Failed to get current cuda context");
-//    }
-//    if (context == nullptr) {
-//      context = ctx;
-//    } else {
-//      CUDF_EXPECTS(context == ctx, "Context switched");
-//    }
-
-    CUdevice d;
-    CUresult status = cuCtxGetDevice(&d);
-    if (status != CUDA_SUCCESS) {
-      CUDF_FAIL("Failed to get the device ID for the current context");
-    }
-    if (device == cudaInvalidDeviceId) {
-      device = d;
-    } else {
-      CUDF_EXPECTS(device == d, "Device switched");
-    }
-
     cufile_buffer buffer{reinterpret_cast<void *>(device_pointer), static_cast<std::size_t>(size)};
     auto writer = cufile_file::make_writer(env->GetStringUTFChars(path, nullptr));
-
-    auto const result = writer->append(buffer);
-
-//    status = cuCtxGetCurrent(&ctx);
-//    if (status != CUDA_SUCCESS) {
-//      CUDF_FAIL("Failed to get current cuda context");
-//    }
-//    CUDF_EXPECTS(context == ctx, "Context switched");
-
-    status = cuCtxGetDevice(&d);
-    if (status != CUDA_SUCCESS) {
-      CUDF_FAIL("Failed to get the device ID for the current context");
-    }
-    CUDF_EXPECTS(device == d, "Device switched");
-
-    return result;
+    return writer->append(buffer);
   }
   CATCH_STD(env, -1);
 }
