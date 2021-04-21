@@ -5,8 +5,6 @@
 // ./a.out
 
 #include <cassert>
-#include <string>
-#include <thread>
 
 #include <cufile.h>
 #include <fcntl.h>
