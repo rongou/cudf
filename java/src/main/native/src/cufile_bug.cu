@@ -14,7 +14,7 @@
 #include <sys/stat.h>
 
 int main() {
-  auto const size = 1024;
+  auto const size = 1 << 30;
 
   assert(cudaSetDevice(1) == cudaSuccess);
   assert(cudaFree(0) == cudaSuccess);
@@ -28,7 +28,8 @@ int main() {
   assert(cuFileDriverOpen().err == CU_FILE_SUCCESS);
 
   for (int i = 0; i < 2; i++) {
-    auto const file_descriptor = open(("/tmp/cufile" + std::to_string(i)).c_str(),
+    assert(cudaSetDevice(1) == cudaSuccess);
+    auto const file_descriptor = open(("/data/rou/tmp/cufile" + std::to_string(i)).c_str(),
                                       O_CREAT | O_WRONLY | O_DIRECT, S_IRUSR | S_IWUSR);
     assert(file_descriptor >= 0);
     CUfileDescr_t cufile_descriptor{CU_FILE_HANDLE_TYPE_OPAQUE_FD, file_descriptor};
