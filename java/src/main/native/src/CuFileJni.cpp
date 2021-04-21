@@ -346,7 +346,8 @@ JNIEXPORT void JNICALL Java_ai_rapids_cudf_CuFile_writeToFile(JNIEnv *env, jclas
   CATCH_STD(env, );
 }
 
-CUcontext context{nullptr};
+//CUcontext context{nullptr};
+CUdevice device{cudaInvalidDeviceId};
 
 /**
  * @brief Append a device buffer into a given file path.
@@ -361,15 +362,26 @@ JNIEXPORT jlong JNICALL Java_ai_rapids_cudf_CuFile_appendToFile(JNIEnv *env, jcl
   try {
     cudf::jni::auto_set_device(env);
 
-    CUcontext ctx;
-    CUresult status = cuCtxGetCurrent(&ctx);
+//    CUcontext ctx;
+//    CUresult status = cuCtxGetCurrent(&ctx);
+//    if (status != CUDA_SUCCESS) {
+//      CUDF_FAIL("Failed to get current cuda context");
+//    }
+//    if (context == nullptr) {
+//      context = ctx;
+//    } else {
+//      CUDF_EXPECTS(context == ctx, "Context switched");
+//    }
+
+    CUdevice d;
+    CUresult status = cuCtxGetDevice(&d);
     if (status != CUDA_SUCCESS) {
-      CUDF_FAIL("Failed to get current cuda context");
+      CUDF_FAIL("Failed to get the device ID for the current context");
     }
-    if (context == nullptr) {
-      context = ctx;
+    if (device == cudaInvalidDeviceId) {
+      device = d;
     } else {
-      CUDF_EXPECTS(context == ctx, "Context switched");
+      CUDF_EXPECTS(device == d, "Device switched");
     }
 
     cufile_buffer buffer{reinterpret_cast<void *>(device_pointer), static_cast<std::size_t>(size)};
@@ -377,11 +389,17 @@ JNIEXPORT jlong JNICALL Java_ai_rapids_cudf_CuFile_appendToFile(JNIEnv *env, jcl
 
     auto const result = writer->append(buffer);
 
-    status = cuCtxGetCurrent(&ctx);
+//    status = cuCtxGetCurrent(&ctx);
+//    if (status != CUDA_SUCCESS) {
+//      CUDF_FAIL("Failed to get current cuda context");
+//    }
+//    CUDF_EXPECTS(context == ctx, "Context switched");
+
+    status = cuCtxGetDevice(&d);
     if (status != CUDA_SUCCESS) {
-      CUDF_FAIL("Failed to get current cuda context");
+      CUDF_FAIL("Failed to get the device ID for the current context");
     }
-    CUDF_EXPECTS(context == ctx, "Context switched");
+    CUDF_EXPECTS(device == d, "Device switched");
 
     return result;
   }
